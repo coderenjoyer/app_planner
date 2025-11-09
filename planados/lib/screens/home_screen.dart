@@ -25,7 +25,53 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserSettings();
     _loadTrips();
+  }
+
+  Future<void> _loadUserSettings() async {
+    try {
+      final usersSnapshot = await _database.child('users').get();
+
+      if (usersSnapshot.exists && mounted) {
+        final usersData = usersSnapshot.value as Map<dynamic, dynamic>;
+
+        // Find the current user (first user for now - ideally store during login)
+        usersData.forEach((key, value) {
+          final userData = value as Map<dynamic, dynamic>;
+
+          // Load theme setting
+          if (userData['settings'] != null) {
+            final settings = userData['settings'] as Map<dynamic, dynamic>;
+            final themeName = settings['theme'] ?? 'light';
+
+            AppTheme theme;
+            switch (themeName) {
+              case 'dark':
+                theme = AppTheme.dark;
+                break;
+              case 'pink':
+                theme = AppTheme.pink;
+                break;
+              case 'tropical':
+                theme = AppTheme.tropical;
+                break;
+              default:
+                theme = AppTheme.light;
+            }
+
+            // Apply the theme
+            final themeProvider = Provider.of<ThemeProvider>(
+              context,
+              listen: false,
+            );
+            themeProvider.setTheme(theme);
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading user settings: $e');
+    }
   }
 
   Future<void> _loadTrips() async {
@@ -42,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final tripData = value as Map<dynamic, dynamic>;
           loadedTrips.add(
             Trip(
+              id: key as String,
               title: tripData['title'] as String,
               destination: tripData['destination'] as String,
               days: tripData['days'] as int,

@@ -60,16 +60,9 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                           setState(() => _isSaving = true);
 
                           try {
-                            // Create new trip object
-                            final newTrip = Trip(
-                              title: title,
-                              destination: destination,
-                              days: days,
-                              budget: budget,
-                            );
-
                             // Generate a unique key for the trip
                             final tripRef = _database.child('trips').push();
+                            final tripId = tripRef.key;
 
                             // Save to database
                             await tripRef.set({
@@ -79,6 +72,15 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                               'budget': budget,
                               'createdAt': DateTime.now().toIso8601String(),
                             });
+
+                            // Create new trip object with ID
+                            final newTrip = Trip(
+                              id: tripId,
+                              title: title,
+                              destination: destination,
+                              days: days,
+                              budget: budget,
+                            );
 
                             if (!mounted) return;
 
