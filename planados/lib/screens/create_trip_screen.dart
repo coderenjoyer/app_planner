@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/trip.dart';
+import '../utils/user_session.dart';
 
 class CreateTripScreen extends StatefulWidget {
   const CreateTripScreen({super.key});
@@ -60,8 +61,17 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                           setState(() => _isSaving = true);
 
                           try {
-                            // Generate a unique key for the trip
-                            final tripRef = _database.child('trips').push();
+                            final userKey = UserSession().userKey;
+                            if (userKey == null) {
+                              throw Exception('User not logged in');
+                            }
+
+                            // Generate a unique key for the trip under the user's trips
+                            final tripRef = _database
+                                .child('users')
+                                .child(userKey)
+                                .child('trips')
+                                .push();
                             final tripId = tripRef.key;
 
                             // Save to database

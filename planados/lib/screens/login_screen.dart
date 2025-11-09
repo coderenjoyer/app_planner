@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'home_screen.dart';
+import '../utils/user_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -78,6 +79,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (!mounted) return;
+
+      // Save user session
+      UserSession().setUser(emailKey, _emailController.text.trim());
 
       // Login successful
       Navigator.pushReplacement(
@@ -544,6 +548,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Navigate to home
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
+
+      // Save user session
+      UserSession().setUser(emailKey, _emailController.text.trim());
 
       Navigator.pushReplacement(
         context,

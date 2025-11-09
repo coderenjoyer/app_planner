@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'login_screen.dart';
+import '../utils/user_session.dart';
 
 // Theme Provider
 class ThemeProvider extends ChangeNotifier {
@@ -139,47 +140,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _userKey = UserSession().userKey;
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
+    if (_userKey == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     try {
-      final usersSnapshot = await _database.child('users').get();
+      final snapshot = await _database.child('users').child(_userKey!).get();
 
-      if (usersSnapshot.exists) {
-        final usersData = usersSnapshot.value as Map<dynamic, dynamic>;
+      if (snapshot.exists) {
+        final userData = snapshot.value as Map<dynamic, dynamic>;
 
-        // Find the current user (first user for now - ideally store during login)
-        usersData.forEach((key, value) {
-          if (_userKey == null) {
-            _userKey = key as String;
-            final userData = value as Map<dynamic, dynamic>;
+        setState(() {
+          _emailUpdates = userData['settings']?['emailUpdates'] ?? false;
+          _currency = userData['settings']?['currency'] ?? 'PHP';
 
-            setState(() {
-              _emailUpdates = userData['settings']?['emailUpdates'] ?? false;
-              _currency = userData['settings']?['currency'] ?? 'PHP';
-
-              // Load theme setting
-              final themeName = userData['settings']?['theme'] ?? 'light';
-              AppTheme theme;
-              switch (themeName) {
-                case 'dark':
-                  theme = AppTheme.dark;
-                  break;
-                case 'pink':
-                  theme = AppTheme.pink;
-                  break;
-                case 'tropical':
-                  theme = AppTheme.tropical;
-                  break;
-                default:
-                  theme = AppTheme.light;
-              }
-              widget.themeProvider.setTheme(theme);
-
-              _isLoading = false;
-            });
+          // Load theme setting
+          final themeName = userData['settings']?['theme'] ?? 'light';
+          AppTheme theme;
+          switch (themeName) {
+            case 'dark':
+              theme = AppTheme.dark;
+              break;
+            case 'pink':
+              theme = AppTheme.pink;
+              break;
+            case 'tropical':
+              theme = AppTheme.tropical;
+              break;
+            default:
+              theme = AppTheme.light;
           }
+          widget.themeProvider.setTheme(theme);
+
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -723,6 +722,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () {
               // Close the dialog
               Navigator.pop(context);
+
+              // Clear user session
+              UserSession().clearUser();
 
               // Navigate back to login screen and clear all previous routes
               Navigator.of(context).pushAndRemoveUntil(

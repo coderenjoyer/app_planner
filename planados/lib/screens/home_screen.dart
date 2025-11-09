@@ -6,6 +6,7 @@ import '../widgets/trip_card.dart';
 import 'create_trip_screen.dart';
 import 'trip_detail_screen.dart';
 import 'settings_screen.dart';
+import '../utils/user_session.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,43 +32,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadUserSettings() async {
     try {
-      final usersSnapshot = await _database.child('users').get();
+      final userKey = UserSession().userKey;
+      if (userKey == null) return;
 
-      if (usersSnapshot.exists && mounted) {
-        final usersData = usersSnapshot.value as Map<dynamic, dynamic>;
+      final snapshot = await _database.child('users').child(userKey).get();
 
-        // Find the current user (first user for now - ideally store during login)
-        usersData.forEach((key, value) {
-          final userData = value as Map<dynamic, dynamic>;
+      if (snapshot.exists && mounted) {
+        final userData = snapshot.value as Map<dynamic, dynamic>;
 
-          // Load theme setting
-          if (userData['settings'] != null) {
-            final settings = userData['settings'] as Map<dynamic, dynamic>;
-            final themeName = settings['theme'] ?? 'light';
+        // Load theme setting
+        if (userData['settings'] != null) {
+          final settings = userData['settings'] as Map<dynamic, dynamic>;
+          final themeName = settings['theme'] ?? 'light';
 
-            AppTheme theme;
-            switch (themeName) {
-              case 'dark':
-                theme = AppTheme.dark;
-                break;
-              case 'pink':
-                theme = AppTheme.pink;
-                break;
-              case 'tropical':
-                theme = AppTheme.tropical;
-                break;
-              default:
-                theme = AppTheme.light;
-            }
-
-            // Apply the theme
-            final themeProvider = Provider.of<ThemeProvider>(
-              context,
-              listen: false,
-            );
-            themeProvider.setTheme(theme);
+          AppTheme theme;
+          switch (themeName) {
+            case 'dark':
+              theme = AppTheme.dark;
+              break;
+            case 'pink':
+              theme = AppTheme.pink;
+              break;
+            case 'tropical':
+              theme = AppTheme.tropical;
+              break;
+            default:
+              theme = AppTheme.light;
           }
-        });
+
+          // Apply the theme
+          final themeProvider = Provider.of<ThemeProvider>(
+            context,
+            listen: false,
+          );
+          themeProvider.setTheme(theme);
+        }
       }
     } catch (e) {
       print('Error loading user settings: $e');
@@ -78,7 +77,17 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final snapshot = await _database.child('trips').get();
+      final userKey = UserSession().userKey;
+      if (userKey == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final snapshot = await _database
+          .child('users')
+          .child(userKey)
+          .child('trips')
+          .get();
 
       if (snapshot.exists) {
         final tripsData = snapshot.value as Map<dynamic, dynamic>;

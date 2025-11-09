@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/trip.dart';
+import '../utils/user_session.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final Trip trip;
@@ -39,9 +40,21 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       return;
     }
 
+    final userKey = UserSession().userKey;
+    if (userKey == null) {
+      print('DEBUG: No user logged in');
+      setState(() => _isLoading = false);
+      return;
+    }
+
     try {
       // Load existing activities if available
-      final snapshot = await _database.child('trips').child(_tripId!).get();
+      final snapshot = await _database
+          .child('users')
+          .child(userKey)
+          .child('trips')
+          .child(_tripId!)
+          .get();
 
       print('DEBUG: Snapshot exists: ${snapshot.exists}');
 
@@ -85,8 +98,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Future<void> _saveActivities() async {
     if (_tripId == null) return;
 
+    final userKey = UserSession().userKey;
+    if (userKey == null) return;
+
     try {
       await _database
+          .child('users')
+          .child(userKey)
           .child('trips')
           .child(_tripId!)
           .child('activities')
